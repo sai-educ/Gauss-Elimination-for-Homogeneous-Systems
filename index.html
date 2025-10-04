@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Homogeneous Systems — Gauss Elimination Method</title>
+<style>
+  :root{
+    --bg:#1a1108; --panel:#221a10; --ink:#fff8e8; --muted:#e5d5b8;
+    --accent:#fb923c; --ok:#22c55e; --warn:#fbbf24; --danger:#ef4444;
+    --grid:#2a2318; --pivot:#f97316; --focus:#fdba74; --free:#fbbf24; --zero:#94a3b8;
+    --overlay:#00000090;
+  }
+  
+  * { box-sizing: border-box; }
+  
+  html,body{height:100%; margin:0; padding:0; overflow-x:hidden;}
+  body{
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Helvetica Neue",Arial,"Noto Sans";
+    color:var(--ink); 
+    background: radial-gradient(1200px 700px at 15% -10%, #3d2610 0%, #1a1108 60%) fixed;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .howto-anchor{position:fixed; top:10px; right:10px; z-index:1001}
+  .howto-btn{
+    background:#3d2610; border:1px solid #5c4020; color:var(--ink);
+    border-radius:999px; padding:10px 16px; font-size:14px; cursor:pointer;
+    min-height:44px; display:flex; align-items:center; gap:6px;
+    touch-action: manipulation;
+  }
+  .howto-btn:active{transform:scale(0.97)}
+  .howto-btn:hover{border-color:#7c5a30}
+  .backdrop{position:fixed; inset:0; background:var(--overlay); display:none; z-index:1000}
+  .backdrop.open{display:block}
+  .howto-panel{
+    position:fixed; top:0; right:0; bottom:0; width:min(440px, 100vw);
+    background:linear-gradient(180deg,#2a1f12 0%,#1a1108 100%);
+    border-left:1px solid #3d2610; 
+    box-shadow:0 0 40px #00000070; z-index:1002; display:none;
+    overflow-y:auto; -webkit-overflow-scrolling: touch;
+  }
+  .howto-panel.open{display:block; animation:slideIn 0.3s ease}
+  @keyframes slideIn{from{transform:translateX(100%)} to{transform:translateX(0)}}
+  .howto-inner{padding:16px}
+  .howto-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; position:sticky; top:0; background:#2a1f12; padding:12px; margin:-16px -16px 12px; z-index:10; border-bottom:1px solid #3d2610}
+  .howto-title{font-size:16px; font-weight:700}
+  .close-btn{background:#221a10; border:1px solid #3d2610; color:var(--ink); border-radius:10px; padding:10px 12px; cursor:pointer; min-height:44px; min-width:44px; display:flex; align-items:center; justify-content:center; touch-action:manipulation}
+  .close-btn:active{transform:scale(0.95)}
+  .close-btn:hover{border-color:#5c4020}
+  .lang-tabs{display:flex; gap:6px; margin:8px 0 14px}
+  .tab{background:#1a1410; border:1px solid #3d2610; color:var(--muted); padding:10px 16px; border-radius:999px; cursor:pointer; font-size:14px; flex:1; text-align:center; min-height:44px; display:flex; align-items:center; justify-content:center; touch-action:manipulation}
+  .tab:active{transform:scale(0.97)}
+  .tab[aria-selected="true"]{color:#1a1108; background:#fb923c; border-color:#fb923c; font-weight:700}
+  .howto-section{border:1px solid #3d2610; background:#1a1410; border-radius:10px; padding:14px; margin-top:10px}
+  .howto-section h3{margin:0 0 10px; font-size:15px; color:#fb923c}
+  .howto-section ol{margin:.5em 0 .4em 1.4em; line-height:1.7; padding-left:0} 
+  .howto-section li{margin:.4em 0}
+  .howto-section ul{margin:.5em 0 .4em 1.4em; line-height:1.7; padding-left:0}
+  .muted{color:var(--muted)}
+  .highlight{color:#fdba74; font-weight:600}
+
+  header{max-width:1300px; margin:0 auto; padding:20px 16px 12px}
+  h1{margin:0 0 8px; font-size:clamp(20px,5vw,34px); line-height:1.2}
+  .sub{color:var(--muted); max-width:1050px; line-height:1.6; font-size:clamp(13px,3.5vw,15px)}
+  
+  main{
+    max-width:1300px; margin:12px auto 40px; padding:0 12px; 
+    display:grid; gap:14px; grid-template-columns:1fr;
+  }
+  @media (min-width:900px){ 
+    main{grid-template-columns:1.4fr 1fr; padding:0 16px; gap:16px} 
+  }
+
+  .card{
+    background:linear-gradient(180deg,#2a1f12 0%,#1a1108 100%); 
+    border:1px solid #3d2610; border-radius:14px; padding:14px; 
+    box-shadow:0 10px 28px #00000045, inset 0 1px 0 #4d362033
+  }
+  h2{margin:0 0 12px; font-size:clamp(16px,4vw,18px)}
+  .row{display:flex; gap:6px; flex-wrap:wrap; align-items:center}
+  .spacer{height:10px}
+  .tag{
+    display:inline-flex; align-items:center; gap:6px; 
+    font-size:11px; padding:6px 10px; border-radius:999px; 
+    border:1px dashed #3d2a18; background:#1a1410;
+    white-space:nowrap;
+  }
+  .dot{width:10px; height:10px; border-radius:50%; flex-shrink:0}
+  .dot.pivot{background:var(--pivot)} 
+  .dot.free{background:var(--free)} 
+  .dot.focus{background:var(--focus)}
+
+  button, select, input[type="number"], input[type="text"]{
+    background:#3d2610; border:1px solid #5c4020; color:var(--ink); 
+    border-radius:10px; padding:11px 14px; font-size:14px; outline:none;
+    min-height:44px; touch-action:manipulation;
+  }
+  button{cursor:pointer; font-weight:500; display:inline-flex; align-items:center; justify-content:center; gap:6px}
+  button:active{transform:scale(0.97)}
+  button:hover{border-color:#7c5a30}
+  button.primary{background:linear-gradient(180deg,#f97316,#ea580c); border-color:#fb923c; font-weight:600}
+  button.ghost{background:#221a10}
+  button.ok{background:#065f46; border-color:#22c55e; font-weight:600}
+  button.warn{background:#78350f; border-color:#fbbf24}
+  
+  .pill{
+    display:inline-flex; align-items:center; gap:6px; 
+    padding:8px 12px; border:1px solid #3d2a18; 
+    border-radius:999px; background:#1a1410; color:var(--muted);
+    font-size:13px; flex-wrap:wrap;
+  }
+  .pill input, .pill select{
+    padding:8px 10px; min-height:38px; font-size:13px;
+  }
+
+  .matrix-wrap{
+    position:relative; padding:12px; border-radius:12px;
+    background: linear-gradient(180deg, rgba(251,146,60,.03), rgba(251,146,60,0));
+    border:1px solid #4d3620; overflow-x:auto; overflow-y:visible;
+    -webkit-overflow-scrolling: touch;
+  }
+  @media (min-width:400px){
+    .matrix-wrap{padding:14px}
+  }
+  @media (min-width:768px){
+    .matrix-wrap{padding:16px}
+  }
+  
+  .brackets::before,.brackets::after{
+    content:""; position:absolute; top:8px; bottom:8px; width:6px; 
+    border:2px solid #5c4020; border-left:none; border-right:none;
+  }
+  .brackets::before{left:6px; border-left:3px solid #5c4020; border-radius:8px 0 0 8px}
+  .brackets::after{right:6px; border-right:3px solid #5c4020; border-radius:0 8px 8px 0}
+  
+  .matrix{
+    display:grid; 
+    gap:6px;
+    grid-template-columns:repeat(var(--cols), 70px);
+    min-width:min-content;
+  }
+  @media (min-width:400px){
+    .matrix{gap:7px; grid-template-columns:repeat(var(--cols), 75px)}
+  }
+  @media (min-width:768px){
+    .matrix{grid-template-columns:repeat(var(--cols), 82px)}
+  }
+  
+  .cell{position:relative}
+  .cell input{
+    width:100%; height:70px; 
+    padding:8px; text-align:center; 
+    font-size:clamp(15px, 4vw, 17px); 
+    font-weight:600; color:var(--ink);
+    background:#2a1f12; border:2px solid #3d2610; 
+    border-radius:10px; 
+    transition:border-color .2s, box-shadow .2s;
+    appearance:none;
+    -webkit-appearance:none;
+    -moz-appearance:textfield;
+  }
+  @media (min-width:400px){
+    .cell input{height:75px; font-size:16px}
+  }
+  @media (min-width:768px){
+    .cell input{height:82px; font-size:17px}
+  }
+  .cell input::-webkit-inner-spin-button,
+  .cell input::-webkit-outer-spin-button{
+    -webkit-appearance:none; margin:0;
+  }
+  .cell input:focus{
+    border-color:#f97316; 
+    box-shadow:0 0 0 3px #f9731633;
+    outline:none;
+  }
+  .cell input.pivot-col{
+    background:#2d1a0a; border-color:#f97316; box-shadow:0 0 12px #f9731633;
+  }
+  .cell input.free-col{
+    background:#2d2010; border-color:#fbbf24; box-shadow:0 0 8px #fbbf2433;
+  }
+  
+  .pivotMark{
+    position:absolute; top:-8px; left:50%; transform:translateX(-50%); 
+    font-size:9px; padding:2px 6px; border-radius:6px; 
+    background:#2d1a0a; color:#fdba74; border:1px solid #f9731655;
+    pointer-events:none; text-transform:uppercase; letter-spacing:0.5px;
+    font-weight:600;
+  }
+  .freeMark{
+    position:absolute; top:-8px; left:50%; transform:translateX(-50%); 
+    font-size:9px; padding:2px 6px; border-radius:6px; 
+    background:#2d2010; color:#fde68a; border:1px solid #fbbf2455;
+    pointer-events:none; text-transform:uppercase; letter-spacing:0.5px;
+    font-weight:600;
+  }
+
+  .solution-box{
+    background:#1a1410; border:1px solid #3d2610; border-radius:12px; 
+    padding:12px; margin-top:10px;
+    font-family:ui-monospace,Menlo,Consolas,monospace; 
+    font-size:13px; line-height:1.8;
+  }
+  .solution-box .var{color:#fb923c; font-weight:600}
+  .solution-box .param{color:#fbbf24; font-weight:600}
+
+  .log{
+    background:#1a1410; border:1px solid #3d2610; border-radius:12px; 
+    padding:12px; height:200px; overflow:auto; 
+    font-family:ui-monospace,Menlo,Consolas,monospace; 
+    font-size:12px; line-height:1.7;
+    -webkit-overflow-scrolling: touch;
+  }
+  @media (min-width:768px){
+    .log{height:240px; font-size:13px}
+  }
+  .log-step{color:#fb923c; font-weight:600}
+  
+  .kpis{
+    display:grid; grid-template-columns:repeat(3,1fr); 
+    gap:8px; margin-top:10px;
+  }
+  .kpi{
+    background:#1a1410; border:1px solid #3d2610; 
+    border-radius:10px; padding:12px; text-align:center;
+  }
+  .kpi .label{font-size:11px; color:var(--muted); margin-bottom:6px} 
+  .kpi .value{font-size:clamp(16px,4.5vw,20px); font-weight:700; color:#fb923c}
+
+  details{
+    border:1px solid #3d2610; background:#1a1410; 
+    border-radius:10px; padding:12px; margin-top:12px;
+  }
+  summary{
+    cursor:pointer; font-weight:600; font-size:14px; 
+    min-height:44px; display:flex; align-items:center;
+    touch-action:manipulation; user-select:none;
+  }
+  details[open] summary{margin-bottom:12px}
+
+  footer{
+    max-width:1300px; margin:8px auto 40px; padding:0 16px; 
+    color:var(--muted); font-size:12px; line-height:1.6;
+  }
+  a{color:var(--accent); text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  .info-box{
+    background:#2d2010; border:1px solid #4d3620; 
+    border-radius:10px; padding:12px; margin:10px 0; 
+    border-left:3px solid #fb923c; font-size:13px; line-height:1.6;
+  }
+  .info-box strong{color:#fb923c}
+
+  @media (max-width:767px){
+    .row{gap:6px}
+    .pill{font-size:12px; padding:7px 10px}
+    button{font-size:13px; padding:10px 12px}
+    .tag{font-size:10px; padding:5px 8px}
+    h2{margin-bottom:10px}
+    .howto-section{padding:12px}
+    .howto-section h3{font-size:14px}
+    .howto-section li, .howto-section ul{font-size:13px; line-height:1.6}
+    .info-box{font-size:12px}
+    .kpis{grid-template-columns:repeat(2,1fr)}
+  }
+
+  @media (max-width:400px){
+    .row.auto-controls{flex-direction:column; align-items:stretch}
+    .row.auto-controls button{width:100%}
+  }
+</style>
+</head>
+<body>
+  <div class="howto-anchor">
+    <button id="howBtn" class="howto-btn" aria-haspopup="dialog" aria-controls="howPanel">
+      <span>❓</span>
+      <span>How to Use</span>
+    </button>
+  </div>
+  <div id="howBackdrop" class="backdrop" tabindex="-1" aria-hidden="true"></div>
+  <div id="howPanel" class="howto-panel" role="dialog" aria-modal="true" aria-labelledby="howTitle" aria-hidden="true">
+    <div class="howto-inner">
+      <div class="howto-head">
+        <div id="howTitle" class="howto-title">How to Use • వాడుక మార్గదర్శకం</div>
+        <button id="howClose" class="close-btn" aria-label="Close">✕</button>
+      </div>
+      <div class="lang-tabs" role="tablist" aria-label="Language tabs">
+        <button id="tabEN" class="tab" role="tab" aria-selected="true" aria-controls="panelEN">English</button>
+        <button id="tabTE" class="tab" role="tab" aria-selected="false" aria-controls="panelTE">తెలుగు</button>
+      </div>
+
+      <section id="panelEN" class="howto-section" role="tabpanel" aria-labelledby="tabEN">
+        <h3>🎯 Learning Objectives</h3>
+        <ul class="muted">
+          <li>Understand <span class="highlight">homogeneous systems</span> Ax = 0 and their properties</li>
+          <li>Master <span class="highlight">Gaussian elimination</span> to find solution spaces</li>
+          <li>Identify <span class="highlight">pivot and free variables</span> systematically</li>
+          <li>Express general solutions in <span class="highlight">parametric form</span></li>
+          <li>Connect solution dimension to rank: nullity = n - rank(A)</li>
+          <li>Understand null space as kernel of linear transformation</li>
+        </ul>
+        
+        <h3>📋 Procedure</h3>
+        <ol>
+          <li><strong>Matrix Setup:</strong> Enter coefficient matrix A for system Ax = 0 (up to 5×6)</li>
+          <li><strong>Reduction:</strong> Click <strong>Next Step</strong> to reduce to row echelon form
+            <ul style="margin-left:1.2em; margin-top:0.3em">
+              <li>Pivot columns are identified (basic variables)</li>
+              <li>Non-pivot columns are free variables (parameters)</li>
+            </ul>
+          </li>
+          <li><strong>Solution:</strong> Tool computes:
+            <ul style="margin-left:1.2em; margin-top:0.3em">
+              <li>Trivial solution (always x = 0)</li>
+              <li>Non-trivial solutions if rank(A) &lt; n</li>
+              <li>Parametric representation using free variables</li>
+            </ul>
+          </li>
+          <li><strong>Interpretation:</strong> Solution dimension = nullity = n - r</li>
+        </ol>
+
+        <div class="info-box">
+          <strong>💡 Key Theorem:</strong> Homogeneous system Ax = 0 always has the trivial solution x = 0. Non-trivial solutions exist if and only if rank(A) &lt; n, where n is the number of variables.
+        </div>
+      </section>
+
+      <section id="panelTE" class="howto-section" role="tabpanel" aria-labelledby="tabTE" hidden>
+        <h3>🎯 అభ్యాస లక్ష్యాలు</h3>
+        <ul class="muted">
+          <li><span class="highlight">Homogeneous systems</span> Ax = 0 మరియు వాటి లక్షణాలను అర్థం చేసుకోవడం</li>
+          <li>Solution spaces కనుగొనడానికి <span class="highlight">Gaussian elimination</span> నేర్చుకోవడం</li>
+          <li><span class="highlight">Pivot మరియు free variables</span> ను క్రమపద్ధతిలో గుర్తించడం</li>
+          <li>సాధారణ పరిష్కారాలను <span class="highlight">parametric రూపంలో</span> వ్యక్తపరచడం</li>
+          <li>Solution dimension ను rank తో కలపడం: nullity = n - rank(A)</li>
+          <li>Null space ను linear transformation యొక్క kernel గా అర్థం చేసుకోవడం</li>
+        </ul>
+        
+        <h3>📋 ప్రక్రియ</h3>
+        <ol>
+          <li><strong>మాట్రిక్స్ సెటప్:</strong> Ax = 0 సిస్టమ్ కోసం coefficient matrix A నమోదు చేయండి (5×6 వరకు)</li>
+          <li><strong>తగ్గింపు:</strong> Row echelon form కు తగ్గించడానికి <strong>Next Step</strong> నొక్కండి
+            <ul style="margin-left:1.2em; margin-top:0.3em">
+              <li>Pivot columns గుర్తించబడతాయి (basic variables)</li>
+              <li>Non-pivot columns free variables (parameters)</li>
+            </ul>
+          </li>
+          <li><strong>పరిష్కారం:</strong> టూల్ గణిస్తుంది:
+            <ul style="margin-left:1.2em; margin-top:0.3em">
+              <li>Trivial solution (ఎల్లప్పుడూ x = 0)</li>
+              <li>rank(A) &lt; n అయితే non-trivial solutions</li>
+              <li>Free variables ఉపయోగించి parametric representation</li>
+            </ul>
+          </li>
+          <li><strong>వివరణ:</strong> Solution dimension = nullity = n - r</li>
+        </ol>
+
+        <div class="info-box">
+          <strong>💡 ముఖ్య సిద్ధాంతం:</strong> Homogeneous system Ax = 0 ఎల్లప్పుడూ trivial solution x = 0 కలిగి ఉంటుంది. rank(A) &lt; n అయినప్పుడు మాత్రమే non-trivial solutions ఉంటాయి, ఇక్కడ n variables సంఖ్య.
+        </div>
+      </section>
+    </div>
+  </div>
+
+<header>
+  <h1>Homogeneous Systems — Gauss Elimination Method</h1>
+  <p class="sub">
+    <strong>Objective:</strong> Solve <strong>homogeneous linear systems</strong> Ax = 0 using <strong>Gaussian elimination</strong>. 
+    Find the complete solution space (null space) by identifying pivot and free variables. Understand when non-trivial solutions exist and express them in parametric form. Essential for eigenvalue problems, differential equations, and linear independence analysis.
+  </p>
+</header>
+
+<main>
+  <section class="card">
+    <div class="row" aria-label="Matrix size and presets">
+      <div class="pill">
+        <span>Rows:</span>
+        <input id="rows" type="number" inputmode="numeric" min="2" max="5" value="3" style="width:55px">
+      </div>
+      <div class="pill">
+        <span>Cols:</span>
+        <input id="cols" type="number" inputmode="numeric" min="2" max="6" value="4" style="width:55px">
+      </div>
+      <button id="resize">Resize</button>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="row">
+      <button id="presetA" class="ghost">Preset A</button>
+      <button id="presetB" class="ghost">Preset B</button>
+      <button id="random" class="ghost">Random</button>
+      <button id="reset" class="ghost">Clear</button>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="matrix-wrap brackets" aria-label="Coefficient matrix">
+      <div id="matrix" class="matrix"></div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="row" style="font-size:11px">
+      <span class="tag"><span class="dot pivot"></span> Pivot column</span>
+      <span class="tag"><span class="dot free"></span> Free variable</span>
+      <span class="tag"><span class="dot focus"></span> Current focus</span>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="row auto-controls" aria-label="Auto controls">
+      <button id="next" class="primary">Next Step ▷</button>
+      <button id="finish" class="ok">Complete Reduction</button>
+      <button id="solve" class="ghost">Find Solution</button>
+    </div>
+    <div class="muted" style="margin-top:10px; font-size:12px; line-height:1.5">
+      <strong>Process:</strong> Reduce to echelon form → Identify pivot/free variables → Express solution parametrically
+    </div>
+
+    <div class="spacer"></div>
+
+    <details>
+      <summary>Manual Row Operations</summary>
+      <div class="spacer"></div>
+      
+      <div class="pill" style="width:100%; justify-content:space-between; margin-bottom:8px">
+        <span style="font-size:12px">Swap R<select id="rSwapA"></select> ↔ R<select id="rSwapB"></select></span>
+        <button id="rSwapBtn" style="padding:8px 12px; min-height:38px; font-size:12px">Swap</button>
+      </div>
+      
+      <div class="spacer"></div>
+      
+      <div style="border:1px solid #3d2a18; border-radius:10px; padding:10px; background:#1a1108; margin-bottom:8px">
+        <div style="font-size:12px; margin-bottom:8px; color:var(--muted)">
+          Scale R<select id="rScale" style="width:50px; padding:6px; font-size:12px"></select> by 
+          <input id="rScaleK" type="number" value="2" step="0.5" style="width:60px; padding:6px; font-size:12px">
+        </div>
+        <button id="rScaleBtn" style="width:100%">Scale Row</button>
+      </div>
+      
+      <div style="border:1px solid #3d2a18; border-radius:10px; padding:10px; background:#1a1108">
+        <div style="font-size:12px; margin-bottom:8px; color:var(--muted)">
+          R<select id="rAddDest" style="width:50px; padding:6px; font-size:12px"></select> ← 
+          R<select id="rAddDest2" style="width:50px; padding:6px; font-size:12px"></select> + 
+          <input id="rAddK" type="number" value="-1" step="0.5" style="width:60px; padding:6px; font-size:12px">·R<select id="rAddSrc" style="width:50px; padding:6px; font-size:12px"></select>
+        </div>
+        <button id="rAddBtn" style="width:100%">Add Multiple of Row</button>
+      </div>
+      
+      <div class="spacer"></div>
+      <div class="muted" style="font-size:11px; line-height:1.5">
+        <strong>Note:</strong> For homogeneous systems, we only work with coefficient matrix A.
+      </div>
+    </details>
+  </section>
+
+  <aside class="card">
+    <h2>📚 Theoretical Foundation</h2>
+    <div class="muted" id="lesson" style="line-height:1.6; font-size:13px">
+      <p><strong>Homogeneous Systems:</strong><br>
+      A system Ax = 0 is homogeneous if the right-hand side is zero. Key properties:</p>
+      <ul style="margin:.3em 0 .3em 1.2em">
+        <li>Always has <strong>trivial solution</strong> x = 0</li>
+        <li>Non-trivial solutions ⟺ rank(A) &lt; n</li>
+        <li>Solution set forms a <strong>subspace</strong> (null space)</li>
+      </ul>
+      
+      <p><strong>Solution Structure:</strong><br>
+      After reduction, express pivot variables in terms of free variables:</p>
+      <ul style="margin:.3em 0 .3em 1.2em">
+        <li><strong>Pivot columns:</strong> Basic variables (dependent)</li>
+        <li><strong>Non-pivot columns:</strong> Free variables (parameters)</li>
+        <li><strong>Nullity:</strong> dim(Null(A)) = n - rank(A)</li>
+      </ul>
+      
+      <div class="info-box" style="margin-top:12px">
+        <strong>Applications:</strong> Finding eigenvectors (Ax = λx → (A-λI)x = 0), solving differential equations, determining linear independence, and analyzing kernel of linear transformations.
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <h2>📝 Step Narration</h2>
+    <div id="narr" class="muted" style="min-height:60px; padding:12px; background:#1a1410; border-radius:10px; line-height:1.6; font-size:13px">
+      Enter coefficient matrix A for system Ax = 0. Click <strong>Next Step</strong> to begin Gaussian elimination.
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="kpis">
+      <div class="kpi">
+        <div class="label">Rank</div>
+        <div id="rank" class="value">–</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Free Vars</div>
+        <div id="freeVars" class="value">–</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Nullity</div>
+        <div id="nullity" class="value">–</div>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <h2>🔍 Solution Space</h2>
+    <div id="solution" class="solution-box">
+      <div class="muted">Reduce matrix to see solution...</div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <h2>📋 Operation Log</h2>
+    <div id="log" class="log" aria-live="polite"><div class="muted">Operations will appear here...</div></div>
+
+    <details style="margin-top:14px">
+      <summary>🤔 Conceptual Questions</summary>
+      <ul style="margin:.6em 0 0 1.3em; line-height:1.7; font-size:13px">
+        <li>Why does Ax = 0 always have at least one solution?</li>
+        <li>If rank(A) = n, what's the only solution?</li>
+        <li>How many parameters in solution if rank = 2 and n = 5?</li>
+        <li>Why is the solution set a vector space?</li>
+      </ul>
+    </details>
+  </aside>
+</main>
+
+<footer>
+  <strong>Engineering Mathematics • Homogeneous Systems Laboratory</strong><br>
+  Gaussian elimination • Null space • Parametric solutions • Linear independence
+</footer>
+
+<script>
+let R=3, C=4;
+let inputs = [];
+let stepState = null;
+let logEl, narrEl;
+
+function round(x, d=3) {
+  return Math.round(x * Math.pow(10, d)) / Math.pow(10, d);
+}
+
+function openHowto(){
+  document.getElementById('howBackdrop').classList.add('open');
+  const p = document.getElementById('howPanel');
+  p.classList.add('open');
+  p.setAttribute('aria-hidden','false');
+  document.getElementById('howBtn').setAttribute('aria-expanded','true');
+  document.body.style.overflow = 'hidden';
+}
+function closeHowto(){
+  document.getElementById('howBackdrop').classList.remove('open');
+  const p = document.getElementById('howPanel');
+  p.classList.remove('open');
+  p.setAttribute('aria-hidden','true');
+  document.getElementById('howBtn').setAttribute('aria-expanded','false');
+  document.body.style.overflow = '';
+}
+function selectLang(tab){
+  const isEN = tab === 'EN';
+  document.getElementById('tabEN').setAttribute('aria-selected', isEN ? 'true' : 'false');
+  document.getElementById('tabTE').setAttribute('aria-selected', isEN ? 'false' : 'true');
+  document.getElementById('panelEN').hidden = !isEN;
+  document.getElementById('panelTE').hidden = isEN;
+}
+
+function createGrid(){
+  const grid = document.getElementById('matrix');
+  grid.style.setProperty('--cols', C);
+  grid.innerHTML = '';
+  inputs = [];
+  
+  for (let r=0; r<R; r++){
+    const row = [];
+    for (let c=0; c<C; c++){
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      const inp = document.createElement('input');
+      inp.type = 'number';
+      inp.inputMode = 'numeric';
+      inp.value = '0';
+      inp.step = '0.5';
+      inp.setAttribute('aria-label', `A[${r+1},${c+1}]`);
+      
+      inp.addEventListener('input', () => { drawLabels(); updateKPIs(); });
+      inp.addEventListener('blur', () => {
+        if (inp.value === '' || inp.value === '-') inp.value = '0';
+        inp.value = round(parseFloat(inp.value || 0), 2);
+      });
+      
+      cell.appendChild(inp);
+      grid.appendChild(cell);
+      row.push(inp);
+    }
+    inputs.push(row);
+  }
+  
+  refreshSelectors();
+  drawLabels();
+  setNarr('Matrix created. Enter coefficients for system Ax = 0.');
+  clearLog();
+  updateKPIs();
+  updateSolution();
+}
+
+function getM(){
+  const M = [];
+  for (let r=0; r<R; r++){
+    const row = [];
+    for (let c=0; c<C; c++){
+      row.push(parseFloat(inputs[r][c].value || '0'));
+    }
+    M.push(row);
+  }
+  return M;
+}
+
+function setM(M){
+  R = M.length;
+  C = M[0].length;
+  document.getElementById('rows').value = R;
+  document.getElementById('cols').value = C;
+  createGrid();
+  for (let r=0; r<R; r++){
+    for (let c=0; c<C; c++){
+      inputs[r][c].value = round(M[r][c], 2);
+    }
+  }
+  drawLabels();
+  updateKPIs();
+  updateSolution();
+}
+
+function clearM(){
+  for (let r=0; r<R; r++){
+    for (let c=0; c<C; c++){
+      inputs[r][c].value = '0';
+    }
+  }
+  drawLabels();
+  updateKPIs();
+  updateSolution();
+}
+
+function randomM(){
+  for (let r=0; r<R; r++){
+    for (let c=0; c<C; c++){
+      inputs[r][c].value = (Math.floor(Math.random() * 7) - 3).toString();
+    }
+  }
+  drawLabels();
+  updateKPIs();
+  updateSolution();
+}
+
+function swapRows(M, i, j){
+  if (i === j) return;
+  [M[i], M[j]] = [M[j], M[i]];
+  log(`<span class="log-step">R${i+1} ↔ R${j+1}</span> Row exchange`);
+}
+
+function scaleRow(M, i, k){
+  for (let c=0; c<C; c++){
+    M[i][c] = round(M[i][c] * k, 3);
+  }
+  log(`<span class="log-step">R${i+1} ← ${round(k,2)}·R${i+1}</span> Row scaling`);
+}
+
+function addRow(M, dest, src, k){
+  for (let c=0; c<C; c++){
+    M[dest][c] = round(M[dest][c] + k * M[src][c], 3);
+  }
+  const sign = k >= 0 ? '+' : '';
+  log(`<span class="log-step">R${dest+1} ← R${dest+1} ${sign} ${round(k,2)}·R${src+1}</span>`);
+}
+
+function writeBack(M){
+  for (let r=0; r<R; r++){
+    for (let c=0; c<C; c++){
+      inputs[r][c].value = round(M[r][c], 3);
+    }
+  }
+  drawLabels();
+  updateKPIs();
+}
+
+function calculateRank(M){
+  let rank = 0;
+  for (let r=0; r<R; r++){
+    let hasNonZero = false;
+    for (let c=0; c<C; c++){
+      if (Math.abs(M[r][c]) > 0.001){
+        hasNonZero = true;
+        break;
+      }
+    }
+    if (hasNonZero) rank++;
+  }
+  return rank;
+}
+
+function getPivotColumns(M){
+  const pivots = [];
+  for (let r=0; r<R; r++){
+    for (let c=0; c<C; c++){
+      if (Math.abs(M[r][c]) > 0.001){
+        pivots.push(c);
+        break;
+      }
+    }
+  }
+  return pivots;
+}
+
+function nextStep(){
+  let M = getM();
+  
+  if (!stepState){
+    stepState = {col: 0, searchRow: 0};
+    log('<strong>🚀 Starting Gaussian elimination...</strong>');
+    setNarr('Beginning reduction to echelon form...');
+  }
+  
+  let {col, searchRow} = stepState;
+  
+  if (col >= C || searchRow >= R){
+    setNarr('✅ <strong>Reduction complete!</strong> Click <strong>Find Solution</strong> to see null space.');
+    log('<strong>✅ Echelon form achieved.</strong>');
+    stepState = null;
+    drawLabels();
+    updateKPIs();
+    updateSolution();
+    return;
+  }
+  
+  let pivotRow = -1;
+  for (let r=searchRow; r<R; r++){
+    if (Math.abs(M[r][col]) > 0.001){
+      pivotRow = r;
+      break;
+    }
+  }
+  
+  if (pivotRow === -1){
+    stepState.col++;
+    setNarr(`Column ${col+1} has no pivot. This will be a free variable.`);
+    drawLabels();
+    updateKPIs();
+    return;
+  }
+  
+  if (pivotRow !== searchRow){
+    swapRows(M, searchRow, pivotRow);
+    writeBack(M);
+    setNarr(`Pivot found in R${pivotRow+1}. Swapped with R${searchRow+1}.`);
+    return;
+  }
+  
+  const pivot = M[searchRow][col];
+  if (Math.abs(pivot - 1) > 0.001){
+    scaleRow(M, searchRow, 1/pivot);
+    writeBack(M);
+    setNarr(`Normalized R${searchRow+1}: pivot becomes 1.`);
+    return;
+  }
+  
+  for (let r=searchRow+1; r<R; r++){
+    if (Math.abs(M[r][col]) > 0.001){
+      const factor = -M[r][col];
+      addRow(M, r, searchRow, factor);
+      writeBack(M);
+      setNarr(`Eliminated entry A[${r+1},${col+1}].`);
+      return;
+    }
+  }
+  
+  stepState.col++;
+  stepState.searchRow++;
+  setNarr(`Column ${col+1} complete.`);
+  drawLabels();
+  updateKPIs();
+}
+
+function finish(){
+  let guard = 0;
+  while (guard++ < 500 && stepState !== null){
+    nextStep();
+  }
+}
+
+function updateSolution(){
+  const M = getM();
+  const rank = calculateRank(M);
+  const pivotCols = getPivotColumns(M);
+  const freeVars = [];
+  
+  for (let c=0; c<C; c++){
+    if (!pivotCols.includes(c)){
+      freeVars.push(c);
+    }
+  }
+  
+  const solBox = document.getElementById('solution');
+  
+  if (freeVars.length === 0){
+    solBox.innerHTML = `
+      <div><strong>Trivial Solution Only:</strong></div>
+      <div style="margin-top:8px">Since rank = ${rank} = n = ${C}, the only solution is:</div>
+      <div style="margin-top:8px; color:#fb923c; font-weight:600">x = 0</div>
+    `;
+    return;
+  }
+  
+  let html = `<div><strong>General Solution (Parametric Form):</strong></div>`;
+  html += `<div style="margin-top:8px">Pivot variables: x<sub>${pivotCols.map(i => i+1).join('</sub>, x<sub>')}</sub></div>`;
+  html += `<div style="margin-top:4px">Free variables: <span class="param">t<sub>${freeVars.map((v,i) => i+1).join('</sub>, t<sub>')}</sub></span></div>`;
+  html += `<div style="margin-top:12px; line-height:2">`;
+  
+  for (let c=0; c<C; c++){
+    if (freeVars.includes(c)){
+      const idx = freeVars.indexOf(c);
+      html += `<span class="var">x<sub>${c+1}</sub></span> = <span class="param">t<sub>${idx+1}</sub></span><br>`;
+    } else {
+      html += `<span class="var">x<sub>${c+1}</sub></span> = (function of free variables)<br>`;
+    }
+  }
+  
+  html += `</div>`;
+  html += `<div style="margin-top:12px; padding:8px; background:#2d2010; border-radius:6px">`;
+  html += `<strong>Solution Space:</strong> ${freeVars.length}-dimensional subspace<br>`;
+  html += `<strong>Nullity:</strong> ${freeVars.length} (dimension of null space)`;
+  html += `</div>`;
+  
+  solBox.innerHTML = html;
+}
+
+function drawLabels(){
+  document.querySelectorAll('.pivotMark, .freeMark').forEach(e => e.remove());
+  
+  const M = getM();
+  const pivotCols = getPivotColumns(M);
+  
+  for (let c=0; c<C; c++){
+    if (pivotCols.includes(c)){
+      for (let r=0; r<R; r++){
+        inputs[r][c].classList.add('pivot-col');
+        inputs[r][c].classList.remove('free-col');
+      }
+      if (inputs[0][c]){
+        const mark = document.createElement('div');
+        mark.className = 'pivotMark';
+        mark.textContent = 'pivot';
+        inputs[0][c].parentElement.appendChild(mark);
+      }
+    } else {
+      for (let r=0; r<R; r++){
+        inputs[r][c].classList.remove('pivot-col');
+        inputs[r][c].classList.add('free-col');
+      }
+      if (inputs[0][c]){
+        const mark = document.createElement('div');
+        mark.className = 'freeMark';
+        mark.textContent = 'free';
+        inputs[0][c].parentElement.appendChild(mark);
+      }
+    }
+  }
+}
+
+function updateKPIs(){
+  const M = getM();
+  const rank = calculateRank(M);
+  const nullity = C - rank;
+  
+  document.getElementById('rank').textContent = rank;
+  document.getElementById('freeVars').textContent = C - rank;
+  document.getElementById('nullity').textContent = nullity;
+}
+
+function setNarr(html){
+  narrEl.innerHTML = html;
+}
+
+function log(html){
+  logEl.insertAdjacentHTML('beforeend', `<div>• ${html}</div>`);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function clearLog(){
+  logEl.innerHTML = '<div class="muted">Operations will appear here...</div>';
+}
+
+function refreshSelectors(){
+  const rOpts = Array.from({length: R}, (_, i) => 
+    `<option value="${i}">${i+1}</option>`
+  ).join('');
+  
+  ['rSwapA', 'rSwapB', 'rScale', 'rAddDest', 'rAddDest2', 'rAddSrc'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = rOpts;
+  });
+}
+
+function presetA(){
+  setM([
+    [1, 2, -1, 3],
+    [2, 4, 1, 0],
+    [1, 2, 3, -6]
+  ]);
+  setNarr('<strong>Preset A:</strong> Rank 2 system. Expect 2 free variables.');
+  log('<strong>Preset A:</strong> 3×4 system (rank 2, nullity 2)');
+  stepState = null;
+}
+
+function presetB(){
+  setM([
+    [1, 2, 3, 4],
+    [2, 4, 6, 8],
+    [1, 1, 1, 1]
+  ]);
+  setNarr('<strong>Preset B:</strong> Dependent rows. Watch for free variables.');
+  log('<strong>Preset B:</strong> 3×4 system with dependencies');
+  stepState = null;
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  logEl = document.getElementById('log');
+  narrEl = document.getElementById('narr');
+  
+  document.getElementById('howBtn').addEventListener('click', () => {
+    const panel = document.getElementById('howPanel');
+    if (panel.classList.contains('open')) closeHowto();
+    else openHowto();
+  });
+  document.getElementById('howClose').addEventListener('click', closeHowto);
+  document.getElementById('howBackdrop').addEventListener('click', closeHowto);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeHowto();
+  });
+  document.getElementById('tabEN').addEventListener('click', () => selectLang('EN'));
+  document.getElementById('tabTE').addEventListener('click', () => selectLang('TE'));
+  
+  document.getElementById('resize').addEventListener('click', () => {
+    const r = Math.max(2, Math.min(5, parseInt(document.getElementById('rows').value || '3')));
+    const c = Math.max(2, Math.min(6, parseInt(document.getElementById('cols').value || '4')));
+    R = r;
+    C = c;
+    createGrid();
+    stepState = null;
+  });
+  
+  document.getElementById('random').addEventListener('click', () => {
+    randomM();
+    setNarr('Random matrix generated.');
+    stepState = null;
+  });
+  
+  document.getElementById('reset').addEventListener('click', () => {
+    clearM();
+    setNarr('Matrix cleared.');
+    clearLog();
+    stepState = null;
+  });
+  
+  document.getElementById('presetA').addEventListener('click', presetA);
+  document.getElementById('presetB').addEventListener('click', presetB);
+  
+  document.getElementById('next').addEventListener('click', nextStep);
+  document.getElementById('finish').addEventListener('click', finish);
+  document.getElementById('solve').addEventListener('click', () => {
+    updateSolution();
+    setNarr('Solution space displayed. Check the Solution Space panel.');
+    log('<strong>Solution computed</strong>');
+  });
+  
+  document.getElementById('rSwapBtn').addEventListener('click', () => {
+    const a = parseInt(document.getElementById('rSwapA').value);
+    const b = parseInt(document.getElementById('rSwapB').value);
+    const M = getM();
+    swapRows(M, a, b);
+    writeBack(M);
+    setNarr(`Swapped R${a+1} ↔ R${b+1}`);
+    stepState = null;
+  });
+  
+  document.getElementById('rScaleBtn').addEventListener('click', () => {
+    const i = parseInt(document.getElementById('rScale').value);
+    const k = parseFloat(document.getElementById('rScaleK').value || 1);
+    const M = getM();
+    scaleRow(M, i, k);
+    writeBack(M);
+    setNarr(`Scaled R${i+1} by ${round(k,2)}`);
+    stepState = null;
+  });
+  
+  document.getElementById('rAddBtn').addEventListener('click', () => {
+    const dest = parseInt(document.getElementById('rAddDest').value);
+    const src = parseInt(document.getElementById('rAddSrc').value);
+    const k = parseFloat(document.getElementById('rAddK').value || 0);
+    const M = getM();
+    addRow(M, dest, src, k);
+    writeBack(M);
+    setNarr(`R${dest+1} ← R${dest+1} + ${round(k,2)}·R${src+1}`);
+    stepState = null;
+  });
+  
+  createGrid();
+});
+</script>
+</body>
+</html>
