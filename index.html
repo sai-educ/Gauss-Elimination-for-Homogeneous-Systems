@@ -278,7 +278,7 @@
   <div id="howPanel" class="howto-panel">
     <div class="howto-inner">
       <div class="howto-head">
-        <div id="howTitle" class="howto-title">How to Use • వాడుక మార్గదర్శకం</div>
+        <div class="howto-title">How to Use • వాడుక మార్గదర్శకం</div>
         <button id="howClose" class="close-btn">✕</button>
       </div>
       <div class="lang-tabs">
@@ -757,14 +757,11 @@ function getPivotColumns(M){
 function nextStep(){
   let M = getM();
   
-  // Check if already complete - don't restart
   if (!stepState){
-    // Check if matrix is already in echelon form
     const rank = calculateRank(M);
     const pivotCols = getPivotColumns(M);
     let isAlreadyEchelon = true;
     
-    // Verify echelon form: pivots must be in strictly increasing column positions
     let lastPivotCol = -1;
     for (let r = 0; r < R; r++) {
       let foundNonZero = false;
@@ -1047,7 +1044,43 @@ window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('solve').addEventListener('click', () => {
     updateSolution();
     setNarr('Solution space displayed. Check the Solution Space panel.');
-    log('<strong>Solution computed</strong>');
+    
+    // LOG THE SOLUTION TO THE OPERATION LOG
+    const M = getM();
+    const rank = calculateRank(M);
+    const pivotCols = getPivotColumns(M);
+    const freeVars = [];
+    
+    for (let c=0; c<C; c++){
+      if (!pivotCols.includes(c)){
+        freeVars.push(c);
+      }
+    }
+    
+    log('<strong>📊 SOLUTION COMPUTED</strong>');
+    log(`<strong>System Analysis:</strong> Rank = ${rank}, Nullity = ${C - rank}`);
+    
+    if (freeVars.length === 0){
+      log('<strong>Solution:</strong> Trivial solution only (x = 0)');
+      log('Since rank(A) = n, the null space contains only the zero vector.');
+    } else {
+      log(`<strong>Solution Structure:</strong>`);
+      log(`• Pivot columns: ${pivotCols.map(i => i+1).join(', ')}`);
+      log(`• Free variables: x<sub>${freeVars.map(i => i+1).join('</sub>, x<sub>')}</sub>`);
+      log(`• Nullity: ${freeVars.length} (${freeVars.length}-dimensional null space)`);
+      log('<strong>General Solution:</strong>');
+      
+      for (let c=0; c<C; c++){
+        if (freeVars.includes(c)){
+          const idx = freeVars.indexOf(c);
+          log(`  x<sub>${c+1}</sub> = t<sub>${idx+1}</sub> (free parameter)`);
+        } else {
+          log(`  x<sub>${c+1}</sub> = f(t<sub>1</sub>, t<sub>2</sub>, ...) (dependent on free variables)`);
+        }
+      }
+      
+      log(`<strong>Interpretation:</strong> The solution set forms a ${freeVars.length}-dimensional subspace of ℝ<sup>${C}</sup>`);
+    }
   });
   
   document.getElementById('rSwapBtn').addEventListener('click', () => {
