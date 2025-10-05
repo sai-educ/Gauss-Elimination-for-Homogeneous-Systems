@@ -757,7 +757,42 @@ function getPivotColumns(M){
 function nextStep(){
   let M = getM();
   
+  // Check if already complete - don't restart
   if (!stepState){
+    // Check if matrix is already in echelon form
+    const rank = calculateRank(M);
+    const pivotCols = getPivotColumns(M);
+    let isAlreadyEchelon = true;
+    
+    // Verify echelon form: pivots must be in strictly increasing column positions
+    let lastPivotCol = -1;
+    for (let r = 0; r < R; r++) {
+      let foundNonZero = false;
+      for (let c = 0; c < C; c++) {
+        if (!M[r][c].isZero()) {
+          if (c <= lastPivotCol) {
+            isAlreadyEchelon = false;
+            break;
+          }
+          lastPivotCol = c;
+          foundNonZero = true;
+          break;
+        }
+      }
+      if (!foundNonZero && r < rank) {
+        isAlreadyEchelon = false;
+        break;
+      }
+      if (!isAlreadyEchelon) break;
+    }
+    
+    if (isAlreadyEchelon && rank > 0) {
+      setNarr('✅ <strong>Matrix already in echelon form!</strong> Click <strong>Find Solution</strong> to see the null space solution.');
+      log('<strong>ℹ️ Matrix is already reduced.</strong> No further steps needed.');
+      updateSolution();
+      return;
+    }
+    
     stepState = {col: 0, searchRow: 0};
     log('<strong>🚀 Starting Gaussian elimination...</strong>');
     setNarr('Beginning reduction to echelon form...');
@@ -766,8 +801,8 @@ function nextStep(){
   let {col, searchRow} = stepState;
   
   if (col >= C || searchRow >= R){
-    setNarr('✅ <strong>Reduction complete!</strong> Click <strong>Find Solution</strong> to see null space.');
-    log('<strong>✅ Echelon form achieved.</strong>');
+    setNarr('✅ <strong>Reduction complete!</strong> Matrix is now in echelon form. Click <strong>Find Solution</strong> to see null space.');
+    log('<strong>✅ ELIMINATION COMPLETE.</strong> Echelon form achieved. Solution space can now be determined.');
     stepState = null;
     drawLabels();
     updateKPIs();
